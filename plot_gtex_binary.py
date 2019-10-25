@@ -6,6 +6,7 @@ import gzip
 import matplotlib
 matplotlib.use("Agg")
 
+
 def binary_search(key, L):
     """
     will recursively search for a value in an array
@@ -24,12 +25,13 @@ def binary_search(key, L):
         if key == L[mid][0]:
             return L[mid][1]
 
-        if ( key < L[mid][0] ):
+        if (key < L[mid][0]):
             hi = mid
         else:
             lo = mid
 
     return -1
+
 
 def linear_search(key, L):
     """
@@ -52,7 +54,6 @@ def linear_search(key, L):
         if key == curr:
             return i
     return -1
-
 
 
 def main():
@@ -147,7 +148,7 @@ def main():
             data_header = []
             i = 0
             for field in l.rstrip().split('\t'):
-                #data_header.append(field)
+                # data_header.append(field)
                 data_header.append([field, i])
                 i += 1
             data_header.sort(key=lambda tup: tup[0])
