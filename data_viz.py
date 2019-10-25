@@ -4,7 +4,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-def boxplot(L, out_file_name="boxplot.png",
+def boxplot(L, out_file_name= "",
             names=None, x_label="", y_label="", title=""):
     """
     constructs a boxplot and writes the plot to the specified filename
@@ -33,14 +33,14 @@ def boxplot(L, out_file_name="boxplot.png",
         raise TypeError("boxplot : filename is invalid type!")
 
     else:
-        fig = plt.figure(figsize=(3, 3), dpi=300)
+        fig = plt.figure(figsize=(10, 3), dpi=300)
         ax = fig.add_subplot(1, 1, 1)
         ax.title.set_text(title)
         ax.set_ylabel(y_label)
         ax.set_xlabel(x_label)
 
         ax.boxplot(L)
-        plt.xticks(list(range(1, len(names)+1)), names)
+        plt.xticks(list(range(1, len(names)+1)), names, rotation=90)
 
     try:
         plt.savefig(out_file_name, bbox_inches='tight')
