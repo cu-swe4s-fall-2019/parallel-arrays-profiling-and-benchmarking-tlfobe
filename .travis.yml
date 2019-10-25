@@ -10,5 +10,11 @@ before_install:
     - conda activate test
     - conda install -y pycodestyle
     - conda install --yes python=3.6
+    - conda install --yes numpy
+    - conda install --yes matplotlib
+    - conda install --yes pycodestyle
       
 script:
+
+    - python -m unittest test_data_viz.py
+    - pycodestyle *.py

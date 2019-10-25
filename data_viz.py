@@ -4,7 +4,8 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-def boxplot(L, out_file_name="boxplot.png", names = None, x_label = "", y_label = "", title = ""):
+def boxplot(L, out_file_name="boxplot.png",
+            names=None, x_label="", y_label="", title=""):
     """
     constructs a boxplot and writes the plot to the specified filename
     Arguments
