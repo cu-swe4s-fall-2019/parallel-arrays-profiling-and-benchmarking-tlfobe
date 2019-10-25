@@ -7,6 +7,32 @@ import matplotlib
 matplotlib.use("Agg")
 
 
+def binary_search(key, L):
+    """
+    will recursively search for a value in an array
+
+    Arguments
+    ---------
+    key : anything
+    L : ordered list of anything
+        list of index and pairs to search for a value in
+    """
+    lo = -1
+    hi = len(L)
+    while (hi - lo > 1):
+        mid = (hi + lo) // 2
+
+        if key == L[mid][0]:
+            return L[mid][1]
+
+        if (key < L[mid][0]):
+            hi = mid
+        else:
+            lo = mid
+
+    return -1
+
+
 def linear_search(key, L):
     """
     linearly search for a value in an array
@@ -122,10 +148,10 @@ def main():
             data_header = []
             i = 0
             for field in l.rstrip().split('\t'):
-                data_header.append(field)
-                # data_header.append([field, i])
+                # data_header.append(field)
+                data_header.append([field, i])
                 i += 1
-            # data_header.sort(key=lambda tup: tup[0])
+            data_header.sort(key=lambda tup: tup[0])
 
             continue
 
@@ -134,12 +160,12 @@ def main():
         if A[gene_name_col] == gene_name:
             for group_idx in range(len(groups)):
                 for member in members[group_idx]:
-                    member_idx = linear_search(member, data_header)
-                    print(member_idx)
+                    member_idx = binary_search(member, data_header)
                     if member_idx != -1:
                         group_counts[group_idx].append(int(A[member_idx]))
             break
-
+    # print("FINISHED")
+    # print(group_counts)
     data_viz.boxplot(group_counts, out_file_name=args.output_file,
                      names=groups, x_label=group_col_name,
                      y_label="Gene Read Counts", title=gene_name)
