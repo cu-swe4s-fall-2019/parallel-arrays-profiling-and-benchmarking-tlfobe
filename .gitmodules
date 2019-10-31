@@ -1,0 +1,3 @@
+[submodule "hash-tables-tlfobe"]
+	path = hash-tables-tlfobe
+	url = https://github.com/cu-swe4s-fall-2019/hash-tables-tlfobe.git
