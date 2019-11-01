@@ -66,7 +66,7 @@ def main():
     parser.add_argument("--output_file",
                         type=str,
                         help="name of output file",
-                        default="gtex.out",
+                        default="gtex.png",
                         )
 
     parser.add_argument("--benchmarking",
@@ -77,7 +77,7 @@ def main():
 
     args = parser.parse_args()
 
-    if bool(args.benchmarking):
+    if eval(args.benchmarking):
         t0 = time.time()
 
     data_file_name = args.gene_reads
@@ -93,33 +93,44 @@ def main():
     sample_info_header = None
 
     # map from headers to sample of specific column
-
-    for l in open(sample_info_file_name):
-        # print('loop 1')
-        if sample_info_header is None:
-            sample_info_header = l.rstrip().split('\t')
-        else:
-            data_array = l.rstrip().split('\t')
-            for header_name, value in zip(sample_info_header, data_array):
-                if header_name != group_col_name
-                and header_name != sample_id_col_name:
-                    continue
-                else:
-                    # print('loop 1.1')
-                    if header_name not in header_to_group.keys:
-                        header_to_group.add(header_name, [value])
+    try:
+        for l in open(sample_info_file_name):
+            # print('loop 1')
+            if sample_info_header is None:
+                sample_info_header = l.rstrip().split('\t')
+            else:
+                data_array = l.rstrip().split('\t')
+                for header_name, value in zip(sample_info_header, data_array):
+                    if header_name != group_col_name \
+                    and header_name != sample_id_col_name:
+                        continue
                     else:
-                        if header_name == group_col_name
-                        and value not in groups_unique:
-                            groups_unique.append(value)
-                        loc = header_to_group.search(header_name)
-                        loc.append(value)
+                        # print('loop 1.1')
+                        if header_name not in header_to_group.keys:
+                            header_to_group.add(header_name, [value])
+                        else:
+                            if header_name == group_col_name \
+                            and value not in groups_unique:
+                                groups_unique.append(value)
+                            loc = header_to_group.search(header_name)
+                            loc.append(value)
+    except FileNotFoundError:
+        print("Please supply a valid sample attributes file!", file=sys.stderr)
+        exit(1)
+    except IsADirectoryError:
+        print(sample_info_file_name + " is a directory! Please supply a " +
+              " valid sample attributes file!", file=sys.stderr)
+        exit(1)
 
     sample_ids = header_to_group.search(sample_id_col_name)
 
     # map of groups of specific header to samp_ids
 
-    groups = header_to_group.search(group_col_name)
+    try:
+        groups = header_to_group.search(group_col_name)
+    except KeyError:
+        print("Please supply a valid group_col_name!", file=sys.stderr)
+        exit(1)
     groups_to_samp_ids = hash_tables.ChainedHash(
         hash_functions.h_rolling, 10000)
 
@@ -140,33 +151,47 @@ def main():
     samp_id_to_gene_count = hash_tables.ChainedHash(
         hash_functions.h_rolling, 10000)
 
-    for l in gzip.open(data_file_name, 'rt'):
-        # print('loop 3')
-        if version is None:
-            version = l
-            continue
+    try:
+        for l in gzip.open(data_file_name, 'rt'):
+            # print('loop 3')
+            if version is None:
+                version = l
+                continue
 
-        if dim is None:
-            dim = [int(x) for x in l.rstrip().split()]
-            continue
+            if dim is None:
+                dim = [int(x) for x in l.rstrip().split()]
+                continue
 
-        if data_header is None:
-            data_header = []
-            i = 0
-            data_header = l.rstrip().split('\t')
-            continue
-        A = l.rstrip().split('\t')
+            if data_header is None:
+                data_header = []
+                i = 0
+                data_header = l.rstrip().split('\t')
+                continue
+            A = l.rstrip().split('\t')
 
-        if A[gene_name_col] == gene_name:
-            for header, gene_data in zip(data_header[2:], A[2:]):
-                # print('loop 3.1')
-                if header not in samp_id_to_gene_count.keys:
-                    samp_id_to_gene_count.add(header, gene_data)
-                else:
-                    loc = samp_id_to_gene_count.search(header)
-                    loc.append(gene_data)
-                    # print(loc)
+            if A[gene_name_col] == gene_name:
+                for header, gene_data in zip(data_header[2:], A[2:]):
+                    # print('loop 3.1')
+                    if header not in samp_id_to_gene_count.keys:
+                        samp_id_to_gene_count.add(header, gene_data)
+                    else:
+                        loc = samp_id_to_gene_count.search(header)
+                        loc.append(gene_data)
+                        # print(loc)
+    except FileNotFoundError:
+        print("Please supply a valid gene reads file!", file=sys.stderr)
+        exit(1)
+    except IsADirectoryError:
+        print(data_file_name + " is a directory! Please supply a " +
+              " valid gene reads file!", file=sys.stderr)
+        exit(1)
 
+    
+    if samp_id_to_gene_count.capacity == 0:
+        print("Gene supplied is not within dataset!" +
+              " Please try with a valid gene!",
+              file=sys.stderr)
+        exit(1)
     group_counts = [[] for _ in range(len(groups_unique))]
 
     for i in range(len(groups_unique)):
@@ -178,16 +203,17 @@ def main():
                 group_counts[i].append(int(samp_id_to_gene_count.search(id)))
             else:
                 continue
-    if bool(args.benchmarking):
+    if eval(args.benchmarking):
         t1 = time.time()    # print(group_counts)
         print("DONE! Time =", t1 - t0)
 
     data_viz.boxplot(group_counts, out_file_name=args.output_file,
                      names=groups_unique, x_label=group_col_name,
                      y_label="Gene Read Counts", title=gene_name)
-    if bool(args.benchmarking):
+    if eval(args.benchmarking):
         t2 = time.time()
         print("IMAGE PRINTED! Time =", t2 - t1)
+    print("COMPLETE!")
 
 
 if __name__ == '__main__':

@@ -81,7 +81,7 @@ def main():
 
     args = parser.parse_args()
 
-    if bool(args.benchmarking):
+    if eval(args.benchmarking):
         t0 = time.time()
 
     data_file_name = args.gene_reads
@@ -94,14 +94,24 @@ def main():
     t0 = time.time()
     samples = []
     sample_info_header = None
-    for l in open(sample_info_file_name):
-        if sample_info_header is None:
-            sample_info_header = l.rstrip().split('\t')
-        else:
-            samples.append(l.rstrip().split('\t'))
-    group_col_idx = linear_search(group_col_name, sample_info_header)
-    sample_id_col_idx = linear_search(sample_id_col_name, sample_info_header)
-
+    try:
+        for l in open(sample_info_file_name):
+            if sample_info_header is None:
+                sample_info_header = l.rstrip().split('\t')
+            else:
+                samples.append(l.rstrip().split('\t'))
+        group_col_idx = linear_search(group_col_name, sample_info_header)
+        sample_id_col_idx = linear_search(sample_id_col_name, sample_info_header)
+    except FileNotFoundError:
+        print("Please supply a valid sample attributes file!", file=sys.stderr)
+        exit(1)
+    except IsADirectoryError:
+        print(sample_info_file_name + " is a directory! Please supply a " +
+              " valid sample attributes file!", file=sys.stderr)
+        exit(1)
+    if group_col_idx == -1:
+        print("Please supply a valid group_col_name!", file=sys.stderr)
+        exit(1)
     groups = []
     members = []
 
@@ -126,40 +136,55 @@ def main():
     gene_name_col = 1
 
     group_counts = [[] for i in range(len(groups))]
+    try:
+        for l in gzip.open(data_file_name, 'rt'):
+            if version is None:
+                version = l
+                continue
 
-    for l in gzip.open(data_file_name, 'rt'):
-        if version is None:
-            version = l
-            continue
+            if dim is None:
+                dim = [int(x) for x in l.rstrip().split()]
+                continue
 
-        if dim is None:
-            dim = [int(x) for x in l.rstrip().split()]
-            continue
+            if data_header is None:
+                data_header = []
+                i = 0
+                for field in l.rstrip().split('\t'):
+                    data_header.append(field)
+                    # data_header.append([field, i])
+                    i += 1
+                # data_header.sort(key=lambda tup: tup[0])
 
-        if data_header is None:
-            data_header = []
-            i = 0
-            for field in l.rstrip().split('\t'):
-                data_header.append(field)
-                # data_header.append([field, i])
-                i += 1
-            # data_header.sort(key=lambda tup: tup[0])
+                continue
 
-            continue
+            A = l.rstrip().split('\t')
 
-        A = l.rstrip().split('\t')
+            if A[gene_name_col] == gene_name:
+                for group_idx in range(len(groups)):
+                    for member in members[group_idx]:
+                        member_idx = linear_search(member, data_header)
+                        # print(member_idx)
+                        if member_idx != -1:
+                            group_counts[group_idx].append(int(A[member_idx]))
+                break
+    except FileNotFoundError:
+        print("Please supply a valid gene reads file!", file=sys.stderr)
+        exit(1)
+    except IsADirectoryError:
+        print(data_file_name + " is a directory! Please supply a " +
+              " valid gene reads file!", file=sys.stderr)
+        exit(1)
 
-        if A[gene_name_col] == gene_name:
-            for group_idx in range(len(groups)):
-                for member in members[group_idx]:
-                    member_idx = linear_search(member, data_header)
-                    # print(member_idx)
-                    if member_idx != -1:
-                        group_counts[group_idx].append(int(A[member_idx]))
-            break
+
+    if all([len(a) == 0 for a in group_counts]):
+        print("Gene supplied is not within dataset!" +
+              " Please try with a valid gene!",
+              file=sys.stderr)
+        exit(1)
+
     t1 = time.time()
 
-    if bool(args.benchmarking):
+    if eval(args.benchmarking):
         t1 = time.time()    # print(group_counts)
         print("DONE! Time =", t1 - t0)
 
@@ -167,9 +192,12 @@ def main():
                      names=groups, x_label=group_col_name,
                      y_label="Gene Read Counts", title=gene_name)
 
-    if bool(args.benchmarking):
+    if eval(args.benchmarking):
         t2 = time.time()
         print("IMAGE PRINTED! Time =", t2 - t1)
+
+    print("COMPLETE!")
+
 
 
 if __name__ == '__main__':
