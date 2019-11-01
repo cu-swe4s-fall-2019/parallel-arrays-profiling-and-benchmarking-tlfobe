@@ -3,9 +3,12 @@ import argparse
 import matplotlib.pyplot as plt
 import data_viz
 import gzip
-import time
 import matplotlib
+import time
 import sys
+sys.path.insert(1, "hash-tables-tlfobe")  # noqa: E402
+import hash_tables
+import hash_functions
 matplotlib.use("Agg")
 
 
@@ -48,7 +51,7 @@ def main():
                         type=str,
                         default='GTEx_Analysis_v8_Annotations' +
                         '_SampleAttributesDS.txt',
-                        help="file that contains samples",
+                        help="file that contains group_to_ID_hash_map",
                         )
     parser.add_argument("--gene",
                         required=True,
@@ -58,19 +61,12 @@ def main():
     parser.add_argument("--group_type",
                         required=True,
                         type=str,
-                        help="name of group to pull samples from",
+                        help="name of group to pull group_to_ID_hash_map from",
                         )
     parser.add_argument("--output_file",
                         type=str,
                         help="name of output file",
-                        default="gtex.out",
-                        )
-    parser.add_argument("--method",
-                        type=str,
-                        help="method used to query data",
-                        required=False,
-                        default='arrays',
-                        choices=['arrays', 'hash_tables']
+                        default="gtex.png",
                         )
 
     parser.add_argument("--benchmarking",
@@ -91,18 +87,33 @@ def main():
     sample_id_col_name = 'SAMPID'
 
     gene_name = args.gene
-    t0 = time.time()
-    samples = []
+
+    header_to_group = hash_tables.ChainedHash(hash_functions.h_rolling, 50)
+    groups_unique = []
     sample_info_header = None
+
+    # map from headers to sample of specific column
     try:
         for l in open(sample_info_file_name):
+            # print('loop 1')
             if sample_info_header is None:
                 sample_info_header = l.rstrip().split('\t')
             else:
-                samples.append(l.rstrip().split('\t'))
-        group_col_idx = linear_search(group_col_name, sample_info_header)
-        sample_id_col_idx = linear_search(
-            sample_id_col_name, sample_info_header)
+                data_array = l.rstrip().split('\t')
+                for header_name, value in zip(sample_info_header, data_array):
+                    if header_name != group_col_name \
+                            and header_name != sample_id_col_name:
+                        continue
+                    else:
+                        # print('loop 1.1')
+                        if header_name not in header_to_group.keys:
+                            header_to_group.add(header_name, [value])
+                        else:
+                            if header_name == group_col_name \
+                                    and value not in groups_unique:
+                                groups_unique.append(value)
+                            loc = header_to_group.search(header_name)
+                            loc.append(value)
     except FileNotFoundError:
         print("Please supply a valid sample attributes file!", file=sys.stderr)
         exit(1)
@@ -110,35 +121,39 @@ def main():
         print(sample_info_file_name + " is a directory! Please supply a " +
               " valid sample attributes file!", file=sys.stderr)
         exit(1)
-    if group_col_idx == -1:
+
+    sample_ids = header_to_group.search(sample_id_col_name)
+
+    # map of groups of specific header to samp_ids
+
+    try:
+        groups = header_to_group.search(group_col_name)
+    except KeyError:
         print("Please supply a valid group_col_name!", file=sys.stderr)
         exit(1)
-    groups = []
-    members = []
+    groups_to_samp_ids = hash_tables.ChainedHash(
+        hash_functions.h_rolling, 10000)
 
-    for row_idx in range(len(samples)):
-        sample = samples[row_idx]
-        sample_name = sample[sample_id_col_idx]
-        curr_group = sample[group_col_idx]
+    for g_id, group in zip(sample_ids, groups):
+        # print('loop 2')
+        if group not in groups_to_samp_ids.keys:
+            groups_to_samp_ids.add(group, [g_id])
+        else:
+            loc = groups_to_samp_ids.search(group)
+            loc.append(g_id)
 
-        curr_group_idx = linear_search(curr_group, groups)
+    # map of ids to genes
 
-        if curr_group_idx == -1:
-            curr_group_idx = len(groups)
-            groups.append(curr_group)
-            members.append([])
-
-        members[curr_group_idx].append(sample_name)
-    # print(members)
     version = None
     dim = None
     data_header = None
-
     gene_name_col = 1
+    samp_id_to_gene_count = hash_tables.ChainedHash(
+        hash_functions.h_rolling, 10000)
 
-    group_counts = [[] for i in range(len(groups))]
     try:
         for l in gzip.open(data_file_name, 'rt'):
+            # print('loop 3')
             if version is None:
                 version = l
                 continue
@@ -150,24 +165,19 @@ def main():
             if data_header is None:
                 data_header = []
                 i = 0
-                for field in l.rstrip().split('\t'):
-                    data_header.append(field)
-                    # data_header.append([field, i])
-                    i += 1
-                # data_header.sort(key=lambda tup: tup[0])
-
+                data_header = l.rstrip().split('\t')
                 continue
-
             A = l.rstrip().split('\t')
 
             if A[gene_name_col] == gene_name:
-                for group_idx in range(len(groups)):
-                    for member in members[group_idx]:
-                        member_idx = linear_search(member, data_header)
-                        # print(member_idx)
-                        if member_idx != -1:
-                            group_counts[group_idx].append(int(A[member_idx]))
-                break
+                for header, gene_data in zip(data_header[2:], A[2:]):
+                    # print('loop 3.1')
+                    if header not in samp_id_to_gene_count.keys:
+                        samp_id_to_gene_count.add(header, gene_data)
+                    else:
+                        loc = samp_id_to_gene_count.search(header)
+                        loc.append(gene_data)
+                        # print(loc)
     except FileNotFoundError:
         print("Please supply a valid gene reads file!", file=sys.stderr)
         exit(1)
@@ -176,26 +186,32 @@ def main():
               " valid gene reads file!", file=sys.stderr)
         exit(1)
 
-    if all([len(a) == 0 for a in group_counts]):
+    if samp_id_to_gene_count.capacity == 0:
         print("Gene supplied is not within dataset!" +
               " Please try with a valid gene!",
               file=sys.stderr)
         exit(1)
+    group_counts = [[] for _ in range(len(groups_unique))]
 
-    t1 = time.time()
-
+    for i in range(len(groups_unique)):
+        # print(groups_unique[i])
+        # print(groups_to_samp_ids.search(groups_unique[i]))
+        for id in groups_to_samp_ids.search(groups_unique[i]):
+            if id in samp_id_to_gene_count.keys:
+                # print(j)
+                group_counts[i].append(int(samp_id_to_gene_count.search(id)))
+            else:
+                continue
     if eval(args.benchmarking):
         t1 = time.time()    # print(group_counts)
         print("DONE! Time =", t1 - t0)
 
     data_viz.boxplot(group_counts, out_file_name=args.output_file,
-                     names=groups, x_label=group_col_name,
+                     names=groups_unique, x_label=group_col_name,
                      y_label="Gene Read Counts", title=gene_name)
-
     if eval(args.benchmarking):
         t2 = time.time()
         print("IMAGE PRINTED! Time =", t2 - t1)
-
     print("COMPLETE!")
 
 
