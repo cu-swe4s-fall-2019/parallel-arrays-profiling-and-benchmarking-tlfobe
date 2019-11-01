@@ -4,6 +4,8 @@ before_install:
     - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
     - bash Miniconda3-latest-Linux-x86_64.sh -b
     - . /home/travis/miniconda3/etc/profile.d/conda.sh
+    - curl https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt > GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt
+    - wget "https://github.com/swe4s/lectures/raw/master/data_integration/gtex/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.acmg_59.gct.gz"
     - conda update --yes conda
     - conda config --add channels r
     - conda create --yes -n test
@@ -13,8 +15,6 @@ before_install:
     - conda install --yes numpy
     - conda install --yes matplotlib
     - conda install --yes pycodestyle
-    - curl https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt > GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt
-    - wget "https://github.com/swe4s/lectures/raw/master/data_integration/gtex/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_reads.acmg_59.gct.gz"
     - git submodule update --init
       
 script:
