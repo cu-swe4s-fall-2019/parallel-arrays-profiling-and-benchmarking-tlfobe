@@ -101,7 +101,8 @@ def main():
             else:
                 samples.append(l.rstrip().split('\t'))
         group_col_idx = linear_search(group_col_name, sample_info_header)
-        sample_id_col_idx = linear_search(sample_id_col_name, sample_info_header)
+        sample_id_col_idx = linear_search(
+            sample_id_col_name, sample_info_header)
     except FileNotFoundError:
         print("Please supply a valid sample attributes file!", file=sys.stderr)
         exit(1)
@@ -175,7 +176,6 @@ def main():
               " valid gene reads file!", file=sys.stderr)
         exit(1)
 
-
     if all([len(a) == 0 for a in group_counts]):
         print("Gene supplied is not within dataset!" +
               " Please try with a valid gene!",
@@ -197,7 +197,6 @@ def main():
         print("IMAGE PRINTED! Time =", t2 - t1)
 
     print("COMPLETE!")
-
 
 
 if __name__ == '__main__':

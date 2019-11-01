@@ -102,7 +102,7 @@ def main():
                 data_array = l.rstrip().split('\t')
                 for header_name, value in zip(sample_info_header, data_array):
                     if header_name != group_col_name \
-                    and header_name != sample_id_col_name:
+                            and header_name != sample_id_col_name:
                         continue
                     else:
                         # print('loop 1.1')
@@ -110,7 +110,7 @@ def main():
                             header_to_group.add(header_name, [value])
                         else:
                             if header_name == group_col_name \
-                            and value not in groups_unique:
+                                    and value not in groups_unique:
                                 groups_unique.append(value)
                             loc = header_to_group.search(header_name)
                             loc.append(value)
@@ -186,7 +186,6 @@ def main():
               " valid gene reads file!", file=sys.stderr)
         exit(1)
 
-    
     if samp_id_to_gene_count.capacity == 0:
         print("Gene supplied is not within dataset!" +
               " Please try with a valid gene!",
