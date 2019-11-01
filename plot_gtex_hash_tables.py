@@ -101,14 +101,16 @@ def main():
         else:
             data_array = l.rstrip().split('\t')
             for header_name, value in zip(sample_info_header, data_array):
-                if header_name != group_col_name and header_name != sample_id_col_name:
+                if header_name != group_col_name
+                and header_name != sample_id_col_name:
                     continue
                 else:
                     # print('loop 1.1')
                     if header_name not in header_to_group.keys:
                         header_to_group.add(header_name, [value])
                     else:
-                        if header_name == group_col_name and value not in groups_unique:
+                        if header_name == group_col_name
+                        and value not in groups_unique:
                             groups_unique.append(value)
                         loc = header_to_group.search(header_name)
                         loc.append(value)
