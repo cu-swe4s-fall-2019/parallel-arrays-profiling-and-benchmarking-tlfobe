@@ -19,6 +19,6 @@ before_install:
       
 script:
     - python -m unittest test_data_viz.py
-    - python -m unittest hash-tables-tlfobe/test_hash_tables.py
+    - python -m unittest test_plot_gtex.py
     - bash test_plot_gtex.sh
     - pycodestyle *.py
